@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+    <title>FiveChess</title>
+
+    <style>
+        canvas{background: #fff;margin:120px auto;display: block;border-radius: 4px;box-shadow: 0px 0px 4px #000;}
+    </style>
+
+</head>
+<body>
+
+    <!-- 标签 容器 -->
+    <canvas width="450" height="450" id="canvas"></canvas>
+
+    <script>
+        var over = false;
+        //拿到画板
+        var chess = document.getElementById("canvas");
+        //拿到权限上下文
+        var context = chess.getContext("2d");
+        //设置颜色
+       // context.strokeStyle="pink";
+
+        //绘制棋盘的方法
+        var drawChessboard = function(){
+            //线条 起点 终点
+            for(var i = 0 ; i < 15 ;i++){
+                context.moveTo(15+i*30,15);
+                context.lineTo(15+i*30,435);
+                context.moveTo(15,15+i*30);
+                context.lineTo(435,15+i*30);
+                context.stroke();
+            }
+        }
+        drawChessboard();
+
+
+        //画棋子
+        var onStep = function (i,j,me) {
+            //开始路径 区分大小写
+            context.beginPath();
+
+            //圆心坐标 半径 半径
+            context.arc(15+i*30,15+j*30,13,0,Math.PI*2);
+            //结束路径
+            context.closePath();
+
+            //渐变色
+            var gradient = context.createRadialGradient(15+i*30,15+j*30,0,15+i*30,15+j*30,13);
+            if(me){
+                //设置填充色
+                //context.fillStyle = "#fff";
+                gradient.addColorStop(0,"#0a0a0a");
+                gradient.addColorStop(1,"#636767");
+            }else {
+                gradient.addColorStop(0,"#d1d1d1");
+                gradient.addColorStop(1,"#f9f9f9");
+            }
+            //填充
+            context.fillStyle = gradient;
+            context.fill();
+            context.stroke();
+        }
+
+        //建立一个二维数组判断棋盘上面的落子情况
+        var chessBoard = {};
+        for(var i = 0 ; i < 15;i++){
+            chessBoard[i] = [];
+            for(var j = 0 ; j < 15 ; j++){
+                chessBoard[i][j] = 0;//等于0的地方没有下棋
+            }
+
+        }
+
+
+        var flag = true;
+        //下棋
+        chess.onclick = function(e){
+            if(over) return;
+            if(!flag) return;
+            //获取鼠标坐标
+            var x = e.offsetX;
+            var y = e.offsetY;
+            //点击范围30都可以下棋
+            var i = Math.floor(x/30);
+            var j = Math.floor(y/30);
+            if(chessBoard[i][j] == 0){
+                onStep(i,j,flag);
+                chessBoard[i][j] = 1;
+                for(var k = 0 ; k <count;k++){
+                    if(wins[i][j][k]){
+                        myWin[k]++;
+                        computerWin[k] = 6;
+                        if(myWin[k]==5){
+                            alert("恭喜你赢了");
+                            over =true;
+                        }
+                    }
+                }
+                if(!over){
+                    flag = !flag;
+                    computerAI();
+                }
+            }
+        }
+
+        //输赢
+        var wins = [];
+        //遍历棋盘
+        for(var i = 0; i < 15 ; i++){
+            wins[i] = [];
+            for(var j = 0 ; j < 15;j++){
+                wins[i][j] = [];
+            }
+        }
+
+        //赢法索引
+        var count = 0;
+
+        //横线赢的算法
+        for(var i = 0; i < 15 ; i++){
+            for(var j = 0 ; j < 11;j++){
+                for(var k = 0 ; k < 5 ;k++){
+                    wins[i][j+k][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //竖线赢
+        for(var i = 0; i < 15 ; i++){
+            for(var j = 0 ; j < 11;j++){
+                for(var k = 0 ; k < 5 ;k++){
+                    wins[j+k][i][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //斜线赢
+        for(var i = 0; i < 11 ; i++){
+            for(var j = 0 ; j < 11;j++){
+                for(var k = 0 ; k < 5 ;k++){
+                    wins[i+k][j+k][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //反斜线
+        for(var i = 0; i < 11 ; i++){
+            for(var j = 14 ; j > 3;j--){
+                for(var k = 0 ; k < 5 ;k++){
+                    wins[i+k][j-k][count] = true;
+                }
+                count++;
+            }
+        }
+
+
+        //赢法统计数组
+        var myWin = [];
+        var computerWin = [];
+        for(var i = 0 ; i < count ; i++){
+            myWin[i] = 0;
+            computerWin[i] = 0;
+        }
+
+
+        //计算机AI算法
+        var computerAI = function () {
+
+            //统计分数
+            var mySource = [];
+            var computerSource = [];
+            var max = 0;
+            var u = 0,v = 0;
+            //初始化我方和计算机分数
+            for(var i = 0 ; i < 15 ;i++){
+                mySource[i] = [];
+                computerSource[i] = [];
+                for(var j = 0 ; j < 15 ; j++){
+                    mySource[i][j] = 0;
+                    computerSource[i][j] = 0;
+                }
+            }
+
+            for(var i = 0;i < 15 ;i++){
+                for(var j = 0 ; j < 15 ; j++){
+                    if(chessBoard[i][j] == 0){
+                        for(var k = 0 ; k < count;k++){
+                            if(wins[i][j][k]){
+                                //我方
+                                if(myWin[k] == 1){
+                                    mySource[i][j] += 200;
+                                }else if(myWin[k] == 2){
+                                    mySource[i][j] += 400;
+                                }else if(myWin[k] == 3){
+                                    mySource[i][j] += 2000;
+                                }else if(myWin[k] == 4){
+                                    mySource[i][j] += 10000;
+                                }
+
+                                //计算机
+                                if(computerWin[k] == 1){
+                                    computerSource[i][j] += 420;
+                                }else if(computerWin[k] == 2){
+                                    computerSource[i][j] += 820;
+                                }else if(computerWin[k] == 3){
+                                    computerSource[i][j] += 4100;
+                                }else if(computerWin[k] == 4){
+                                    computerSource[i][j] += 20000;
+                                }
+                            }
+                        }
+
+                        if(mySource[i][j] > max){
+                            max = mySource[i][j];
+                            u = i;
+                            v = j;
+                        }else if(mySource[i][j] == max){
+                            if(computerSource[i][j] > computerSource[u][v]){
+                                u = i;
+                                v = j;
+                            }
+                        }
+
+                        if(computerSource[i][j] > max){
+                            max = computerSource[i][j];
+                            u = i;
+                            v = j;
+                        }else if(computerSource[i][j] == max){
+                            if(mySource[i][j] > mySource[u][v]){
+                                u = i;
+                                v = j;
+                            }
+                        }
+                    }
+                }
+            }
+            onStep(u,v,false);
+            chessBoard[u][v] = 2;
+
+            for(var k = 0 ; k <count;k++){
+                if(wins[u][v][k]){
+                    computerWin[k]++;
+                    myWin[k] = 6;
+                    if(computerWin[k]==5){
+                        alert("很抱歉，你输了！");
+                        over =true;
+                    }
+                }
+            }
+            if(!over){
+                flag = !flag;
+            }
+
+        }
+
+    </script>
+</body>
+</html>
